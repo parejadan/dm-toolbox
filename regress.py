@@ -18,7 +18,7 @@ class LinearRegress(object):
 		#save training
 		self.X[:, :-1] = train_dat[:, :-1]
 		#start descent
-		self.gradientDescent(self, steps)
+		self.gradientDescent(steps)
 
 	def gradientDescent(self, steps):
 		'minimize error predictors and expected values; descent uses adaptive alpha'
@@ -81,12 +81,11 @@ def getPeeks(dat, dic):
 		elif dat[i-1][1] <= dat[i][1] and dat[i][1] >= dat[i+1][1]:
 			mxs.append(dat[i])
 		#descretize peeks hiarchy to dictonary, the higher the number the bigger the value 
+		if not (dat[i][0] in dic):
+			dic[ dat[i][0] ] = 0
 		if mxSZ != len(mxs):
 			mxSZ = len(mxs)
-			if dat[i][0] in dic:
-				dic[ dat[i][0] ] += 1
-			else:
-				dic[ dat[i][0] ] = 1
+			dic[ dat[i][0] ] += 1
 		i += 1
 	return mxs
 
@@ -98,6 +97,7 @@ def getRises(dat):
 	while i < mxsz:
 		#if possotive then increase; otherwise decrease
 		ris[ dat[i][0] ] = dat[i][1] - dat[i-1][1]
+		i += 1
 	return ris
 
 ################# SPECIFIC FOR PROBLEM CHALLENGE
