@@ -4,7 +4,7 @@ class LinearRegress(object):
 	def __init__(self):
 		self.theta = 0 #weights factor
 
-	def train(self, steps, train_dat, test_dat, init_ran):
+	def train(self, steps, train_dat, init_ran):
 		self.Y = train_dat[:, 1:] #last column is treated as output set
 		#determine where in training to begin, at zero, or some random location
 		if init_ran == 'r':
@@ -56,5 +56,50 @@ class LinearRegress(object):
 		else:
 			datum = np.ones( (1, self.theta.shape[0]) )
 			datum[:, 1:] = dat
-			return datum.dot.( self.theta)[0][0] #return prediction
+			return datum.dot( self.theta)[0][0] #return prediction
 
+def readData(rows):
+	dat = []
+	for i in range(rows):
+		tmp = raw_input().split()
+		tmp[1] = int(tmp[1])
+		dat.append(tmp)
+	return dat
+
+def getpeeks(dat, dic):
+	mxs = []
+	sz = len(dat)
+	i = 0
+	mxSZ = len(mxs)
+	while i < sz:
+		if i == 0 and dat[i][1] > dat[i+1][1]:
+			mxs.append(dat[i])
+		elif i == sz-1 and dat[i][1] > dat[i-1][1]:
+			mxs.append(dat[i])
+		elif dat[i-1][1] <= dat[i][1] and dat[i][1] >= dat[i+1][1]:
+			mxs.append(dat[i])
+		#descretize peeks hiarchy to dictonary, the higher the number the bigger the value 
+		if mxSZ != len(mxs):
+			mxSZ = len(mxs)
+			if dat[i][0] in dic:
+				dic[ dat[i][0] ] += 1
+			else:
+				dic[ dat[i][0] ] = 1
+		i += 1
+	return mxs
+
+
+################# SPECIFIC FOR PROBLEM CHALLENGE
+def main():
+	rows = int( raw_input() )
+	rawdat = readData(rows)
+	#try to increase feature space by identifying high travel months
+	dicpeeks = dict() #descretized peeks to then used for increasing data feature space
+	peeks = [ getpeeks(rawdat, dicpeeks) ]
+	while len(peeks[-1]) > round(rows/12): #try to determine the holiday months in dataset
+		peeks.append( getpeeks( peeks[-1] ) )
+		
+	#create numpy array for faster processing
+
+if __name__ == '__main__':
+	main()
