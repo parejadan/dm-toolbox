@@ -11,10 +11,10 @@ class LinearRegress(object):
 		#determine where in training to begin, at zero, or some random location
 		if init_ran == 'r':
 			self.X = np.random.rand( train_dat.shape ) #include bias
-			self.theta = np.random.rand( shape=( train_dat.shape[1]+1, 1 ) ) #feature space
+			self.theta = np.random.rand( shape=( train_dat.shape[1], 1 ) ) #feature space
 		else:
 			self.X = np.zeros( train_dat.shape ) #include bias
-			self.theta = np.ones( shape=( train_dat.shape[1]+1, 1 ) ) #feature space
+			self.theta = np.ones( shape=( train_dat.shape[1], 1 ) ) #feature space
 		#save training
 		self.X[:, :-1] = train_dat[:, :-1]
 		#start descent
@@ -30,6 +30,7 @@ class LinearRegress(object):
 		sig = 0.5 #how much to backstep learning rate
 		#don't update original theta incase a backstep is required during descent
 		t_theta = self.theta
+		print "\n>>>> x dimmens:", x_trans.shape, " theta: ", t_theta.shape
 		m = self.X.shape[0] #number of training examples
 		#start gradient descent
 		for i in range(steps):
@@ -37,7 +38,7 @@ class LinearRegress(object):
 			t_theta -= alpha * (1.0 / m) * (x_trans.dot(hypo - self.Y))
 			#alpha is increased while errors are minimized, otherwise backstep and continue
 			error = self.computeCost(m, t_theta)
-			if error < cur_err[0]:
+			if error < cur_err:
 				cur_err = error
 				alpha = alpha * rho
 				self.theta = t_theta #save optimized thetas
