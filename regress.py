@@ -38,6 +38,7 @@ class LinearRegress(object):
 			t_theta -= alpha * (1.0 / m) * (x_trans.dot(hypo - self.Y))
 			#alpha is increased while errors are minimized, otherwise backstep and continue
 			error = self.computeCost(m, t_theta)
+			print error, '|', cur_err;			
 			if error < cur_err:
 				cur_err = error
 				alpha = alpha * rho
@@ -69,52 +70,22 @@ def readData(rows):
 		dat.append(tmp)
 	return dat
 
-def getPeeks(dat, dic):
-	mxs = []
-	sz = len(dat)
-	i = 0
-	mxSZ = len(mxs)
-	while i < sz:
-		if i == 0 and dat[i][1] > dat[i+1][1]:
-			mxs.append(dat[i])
-		elif i == sz-1 and dat[i][1] > dat[i-1][1]:
-			mxs.append(dat[i])
-		elif dat[i-1][1] <= dat[i][1] and dat[i][1] >= dat[i+1][1]:
-			mxs.append(dat[i])
-		#descretize peeks hiarchy to dictonary, the higher the number the bigger the value 
-		if not (dat[i][0] in dic):
-			dic[ dat[i][0] ] = 1.0
-		if mxSZ != len(mxs):
-			mxSZ = len(mxs)
-			dic[ dat[i][0] ] += dat[i][1]
-		i += 1
-	return mxs
-
 def getRises(dat):
 	ris = dict()
-	i = 1
-	mxsz = len(dat)
-	ris[ dat[0][0] ] = [2, 1]
+	i = 0
+	mxsz = len(dat)-1
 	while i < mxsz:
 		#descretize negative values with sigmoid so regression model can predict
-		val = dat[i][1] - dat[i-1][1]
+		val = dat[i][1] - dat[i+1][1]
 		if val < 0:
 			ris[ dat[i][0] ] = [1, abs(val) ]
 		else:
 			ris[ dat[i][0] ] = [2, abs(val) ]
 		i += 1
+	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
 
 ################# SPECIFIC FOR PROBLEM CHALLENGE
-
-def basePeeks(rawdat, rows):
-	dicpeeks = dict() #descretized peeks to then used for increasing data feature space
-	peeks = [ getPeeks(rawdat, dicpeeks) ]
-	while len(peeks[-1]) > round(rows/12): #try to determine the holiday months in dataset
-		peeks.append( getPeeks( peeks[-1], dicpeeks ) )
-	for key in dicpeeks:
-		dicpeeks[key] /= rows
-	return dicpeeks
 
 def main():
 	print "\t>>> reading rows.."
@@ -124,34 +95,29 @@ def main():
 	#try to increase feature space by identifying high travel months
 	print "\t>>> expanding feature space.."
 	dicrises = getRises(rawdat)
-	dicpeeks = basePeeks(rawdat, rows) #descretized peeks to then used for increasing data feature space
 
 	#generate learner's training data as numpy data structure
 	print "\t>>> Prepping training data.."
-	tmpris, tmppee, tmptra, posprob = [], [], [], 0.0
-	for i in range(12):
+	tmpris, posprob = [], 0.0
+	for i in range(rows):
 		if dicrises[ rawdat[i][0] ][:-1][0] == 2:
 			posprob += 1
-		tmpris.append( [ i%12+1, dicrises[ rawdat[i][0] ][:-1][0], dicrises[ rawdat[i][0] ][1:][0] ] )
-		tmppee.append( [ i%12+1, dicpeeks[ rawdat[i][0] ] ] )
-		tmptra.append( [ dicrises[ rawdat[i][0] ][:-1][0], dicpeeks[ rawdat[i][0] ] ] )
-	posprob /= 12 #probability that there is a possitive increase in flights
-	training_data = np.array(tmptra)
-	rise_dim = np.array(tmpris) #training data for rises predictor
-	peek_dim = np.array(tmppee) #training data for peeks predictor
-	#get learners, two for expanding feature space the other for the predictor
+		tmpris.append( [
+		 	i%12+1, #month
+		 	dicrises[ rawdat[i][0] ][0], # if increases or decreases bit
+		 	dicrises[ rawdat[i][0] ][1], # value it changes
+		 	rawdat[i][1] #number of passangers
+		 ] )
+	posprob /= rows #probability that there is a possitive increase in flights
+	training_data = np.array(tmpris)
 	print "\t>>> Creating learners.."
-	risesregre = LinearRegress()
-	peeksregre = LinearRegress()
 	predictor = LinearRegress()
 	#train
 	itrstps = 400
 	print "\t>>> Training learners.."
-	risesregre.train(itrstps, rise_dim, 'z')
-	peeksregre.train(itrstps, peek_dim, 'z')
 	predictor.train(itrstps, training_data, 'z')
 	print "\t>>> Making Predictions.."
-	
+
 	# for i in range(12):
 	# 	datum = []
 	# 	if rand.uniform(0,1) < posprob:
