@@ -38,7 +38,7 @@ class LinearRegress(object):
 			t_theta -= alpha * (1.0 / m) * (x_trans.dot(hypo - self.Y))
 			#alpha is increased while errors are minimized, otherwise backstep and continue
 			error = self.computeCost(m, t_theta)
-			print error, '|', cur_err;			
+			#print error, '|', cur_err;			
 			if error < cur_err:
 				cur_err = error
 				alpha = alpha * rho
@@ -50,7 +50,9 @@ class LinearRegress(object):
 	def computeCost(self, m, theta):
 		'compute least square error between expected and predicted value'
 		hyp = self.X.dot(theta)
-		sq_err = (hyp - self.Y)**2
+		sq_err = hyp - self.Y
+		print sq_err, '\n'
+		return (1.0 /(2 * m)) / sum(sq_err)
 
 	def predict(self, dat):
 		'predict outcome for a given datum'
