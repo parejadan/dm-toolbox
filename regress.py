@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 import numpy as np
+import random as rand
 
 class LinearRegress(object):
 	def __init__(self):
 		self.theta = 0 #weights factor
 
 	def train(self, steps, train_dat, init_ran):
-		self.Y = train_dat[:, 1:] #last column is treated as output set
+		self.Y = train_dat[:, -1:] #last column is treated as output set
 		#determine where in training to begin, at zero, or some random location
 		if init_ran == 'r':
 			self.X = np.random.rand( train_dat.shape ) #include bias
@@ -30,7 +31,6 @@ class LinearRegress(object):
 		sig = 0.5 #how much to backstep learning rate
 		#don't update original theta incase a backstep is required during descent
 		t_theta = self.theta
-		print "\n>>>> x dimmens:", x_trans.shape, " theta: ", t_theta.shape
 		m = self.X.shape[0] #number of training examples
 		#start gradient descent
 		for i in range(steps):
@@ -83,10 +83,10 @@ def getPeeks(dat, dic):
 			mxs.append(dat[i])
 		#descretize peeks hiarchy to dictonary, the higher the number the bigger the value 
 		if not (dat[i][0] in dic):
-			dic[ dat[i][0] ] = 0
+			dic[ dat[i][0] ] = 1.0
 		if mxSZ != len(mxs):
 			mxSZ = len(mxs)
-			dic[ dat[i][0] ] += 1
+			dic[ dat[i][0] ] += dat[i][1]
 		i += 1
 	return mxs
 
@@ -94,14 +94,28 @@ def getRises(dat):
 	ris = dict()
 	i = 1
 	mxsz = len(dat)
-	ris[ dat[0][0] ] = 0
+	ris[ dat[0][0] ] = [2, 1]
 	while i < mxsz:
-		#if possotive then increase; otherwise decrease
-		ris[ dat[i][0] ] = dat[i][1] - dat[i-1][1]
+		#descretize negative values with sigmoid so regression model can predict
+		val = dat[i][1] - dat[i-1][1]
+		if val < 0:
+			ris[ dat[i][0] ] = [1, abs(val) ]
+		else:
+			ris[ dat[i][0] ] = [2, abs(val) ]
 		i += 1
 	return ris
 
 ################# SPECIFIC FOR PROBLEM CHALLENGE
+
+def basePeeks(rawdat, rows):
+	dicpeeks = dict() #descretized peeks to then used for increasing data feature space
+	peeks = [ getPeeks(rawdat, dicpeeks) ]
+	while len(peeks[-1]) > round(rows/12): #try to determine the holiday months in dataset
+		peeks.append( getPeeks( peeks[-1], dicpeeks ) )
+	for key in dicpeeks:
+		dicpeeks[key] /= rows
+	return dicpeeks
+
 def main():
 	print "\t>>> reading rows.."
 	rows = int( raw_input() )
@@ -110,24 +124,21 @@ def main():
 	#try to increase feature space by identifying high travel months
 	print "\t>>> expanding feature space.."
 	dicrises = getRises(rawdat)
-	dicpeeks = dict() #descretized peeks to then used for increasing data feature space
-	peeks = [ getPeeks(rawdat, dicpeeks) ]
-	while len(peeks[-1]) > round(rows/12): #try to determine the holiday months in dataset
-		peeks.append( getPeeks( peeks[-1], dicpeeks ) )
+	dicpeeks = basePeeks(rawdat, rows) #descretized peeks to then used for increasing data feature space
 
-	print "\t>>> Allocating space for training data.."
-	training_data = np.zeros( (rows, 3) ) #rises, peeks, total passangers
-	peek_dim = np.zeros( (rows, 2) ) #training data for peeks predictor
-	rise_dim = np.zeros( (rows, 2) ) #training data for rises predictor
-	i = 0
 	#generate learner's training data as numpy data structure
 	print "\t>>> Prepping training data.."
-	while i < rows:
-		training_data[i] = [ dicrises[ rawdat[i][0] ], dicpeeks[ rawdat[i][0] ], rawdat[i][1] ]
-		rise_dim[i] = [i%12, dicrises[ rawdat[i][0] ] ]
-		peek_dim[i] = [i%12, dicpeeks[ rawdat[i][0] ] ]
-		i += 1
-
+	tmpris, tmppee, tmptra, posprob = [], [], [], 0.0
+	for i in range(12):
+		if dicrises[ rawdat[i][0] ][:-1][0] == 2:
+			posprob += 1
+		tmpris.append( [ i%12+1, dicrises[ rawdat[i][0] ][:-1][0], dicrises[ rawdat[i][0] ][1:][0] ] )
+		tmppee.append( [ i%12+1, dicpeeks[ rawdat[i][0] ] ] )
+		tmptra.append( [ dicrises[ rawdat[i][0] ][:-1][0], dicpeeks[ rawdat[i][0] ] ] )
+	posprob /= 12 #probability that there is a possitive increase in flights
+	training_data = np.array(tmptra)
+	rise_dim = np.array(tmpris) #training data for rises predictor
+	peek_dim = np.array(tmppee) #training data for peeks predictor
 	#get learners, two for expanding feature space the other for the predictor
 	print "\t>>> Creating learners.."
 	risesregre = LinearRegress()
@@ -139,11 +150,16 @@ def main():
 	risesregre.train(itrstps, rise_dim, 'z')
 	peeksregre.train(itrstps, peek_dim, 'z')
 	predictor.train(itrstps, training_data, 'z')
-
 	print "\t>>> Making Predictions.."
-	while k in range(12):
-		print predictor.predict( [risesregre.predict(i%12), peeksregre.predict(i%12) ] )
-		i += 1
+	
+	# for i in range(12):
+	# 	datum = []
+	# 	if rand.uniform(0,1) < posprob:
+	# 		datum = [ risesregre.predict( [i%12, 1] ), peeksregre.predict(i%12) ]
+	# 	else:
+	# 		datum = [ risesregre.predict( [i%12, 2] ), peeksregre.predict(i%12) ]
+	# 	# print predictor.predict( datum )
+	# 	print datum
 
 
 
