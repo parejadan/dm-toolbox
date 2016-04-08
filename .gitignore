@@ -1,2 +1,4 @@
 nn_dl
 *.m
+*.pyc
+octave-workspace

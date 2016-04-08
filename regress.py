@@ -7,24 +7,17 @@ class LinearRegress(object):
 	def __init__(self):
 		self.theta = 0 #weights factor
 
-	def train(self, steps, train_dat, init_ran):
+	def train(self, train_dat, steps):
 		self.Y = train_dat[:, -1:] #last column is treated as output set
-		#determine where in training to begin, at zero, or some random location
-		if init_ran == 'r':
-			self.X = np.random.rand( train_dat.shape ) #include bias
-			self.theta = np.random.rand( shape=( train_dat.shape[1], 1 ) ) #feature space
-		else:
-			self.X = np.zeros( train_dat.shape ) #include bias
-			self.theta = np.ones( shape=( train_dat.shape[1], 1 ) ) #feature space
-		#save training
-		self.X[:, :-1] = train_dat[:, :-1]
-		#start descent
-		self.gradientDescent(steps)
+		self.X = np.ones( train_dat.shape ) #include bias
+		self.theta = np.random.rand( train_dat.shape[1], 1 ) #predictors
+		self.X[:, :-1] = train_dat[:, :-1] #save training
+		self.gradientDescent(steps) #start descent
 
 	def gradientDescent(self, steps):
 		'minimize error predictors and expected values; descent uses adaptive alpha'
-		cur_err = 1 + max(self.Y) #set expected erros some large value
-		x_trans = self.X.T
+		prev_err = 1 + max(self.Y) #set expected erros some large value
+		cost_hst = []
 		alpha = 0.01 #changes as
 		#descent constants
 		rho = 1.1 #how much to increase learning rate
@@ -34,25 +27,24 @@ class LinearRegress(object):
 		m = self.X.shape[0] #number of training examples
 		#start gradient descent
 		for i in range(steps):
-			hypo = self.X.dot(t_theta)
-			t_theta -= alpha * (1.0 / m) * (x_trans.dot(hypo - self.Y))
+			err = self.X.dot(t_theta)-self.Y #create hypothesis and compute error
+			t_theta -= alpha * (1.0 / m) * self.X.T.dot(err)
 			#alpha is increased while errors are minimized, otherwise backstep and continue
-			error = self.computeCost(m, t_theta)
-			#print error, '|', cur_err;			
-			if error < cur_err:
-				cur_err = error
+			cost_hst.append( self.computeCost(m, err) )
+			#print error, '|', prev_err;			
+			if cost_hst[-1:] < prev_err:
+				print ">>>updating"
+				prev_err = cost_hst[-1:]
 				alpha = alpha * rho
 				self.theta = t_theta #save optimized thetas
 			else:
 				alpha = alpha * sig #use curing sigma to fix learning rate
 				t_theta = self.theta
+		return cost_hst #to see how gradient descent works against dataset
 
-	def computeCost(self, m, theta):
+	def computeCost(self, m, err):
 		'compute least square error between expected and predicted value'
-		hyp = self.X.dot(theta)
-		sq_err = hyp - self.Y
-		print sq_err, '\n'
-		return (1.0 /(2 * m)) / sum(sq_err)
+		return (1.0 /(2 * m)) / sum( pow( err, 2) )
 
 	def predict(self, dat):
 		'predict outcome for a given datum'
@@ -87,29 +79,35 @@ def getRises(dat):
 	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
 
+def normalize(dat):
+	#compute each column's mean and standard derivation
+	for i in range( dat.shape[1] ):
+		dat[:, i] -= np.mean( dat[:, i] )
+		dat[:, i] /= np.std( dat[:, i] )
+	return dat
+
 ################# SPECIFIC FOR PROBLEM CHALLENGE
 
 def main():
 	print "\t>>> reading rows.."
 	rows = int( raw_input() )
 	print "\t>>> reading DATA.."
-	rawdat = readData(rows)
+	data = readData(rows)
 	#try to increase feature space by identifying high travel months
 	print "\t>>> expanding feature space.."
-	dicrises = getRises(rawdat)
+	dicrises = getRises(data)
 
 	#generate learner's training data as numpy data structure
 	print "\t>>> Prepping training data.."
 	tmpris, posprob = [], 0.0
 	for i in range(rows):
-		if dicrises[ rawdat[i][0] ][:-1][0] == 2:
+		if dicrises[ data[i][0] ][:-1][0] == 2:
 			posprob += 1
-		tmpris.append( [
-		 	i%12+1, #month
-		 	dicrises[ rawdat[i][0] ][0], # if increases or decreases bit
-		 	dicrises[ rawdat[i][0] ][1], # value it changes
-		 	rawdat[i][1] #number of passangers
-		 ] )
+		tmpris.append(
+		 	[i%12+1] #month
+		 	+ dicrises[data[i][0]] #increasing/decreasing bit and value
+		 	+ [data[i][1]] #number of passangers
+		 )
 	posprob /= rows #probability that there is a possitive increase in flights
 	training_data = np.array(tmpris)
 	print "\t>>> Creating learners.."
@@ -117,7 +115,7 @@ def main():
 	#train
 	itrstps = 400
 	print "\t>>> Training learners.."
-	predictor.train(itrstps, training_data, 'z')
+	predictor.train(training_data, itrstps)
 	print "\t>>> Making Predictions.."
 
 	# for i in range(12):
@@ -128,8 +126,9 @@ def main():
 	# 		datum = [ risesregre.predict( [i%12, 2] ), peeksregre.predict(i%12) ]
 	# 	# print predictor.predict( datum )
 	# 	print datum
+	return predictor, posprob
 
 
 
-if __name__ == '__main__':
-	main()
+# if __name__ == '__main__':
+# 	main()
