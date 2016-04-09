@@ -127,17 +127,19 @@ def main():
 	itrstps = 400
 	r_lrnr, lrnr = Regression(), Regression()
 	#print "\t>>> Training learners.."
-	r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize)
-	lrnr.fit( train_X, train_y, itrstps, normalize)
-
+	# r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize)
+	# lrnr.fit( train_X, train_y, itrstps, normalize)
+	lrnr.fit( trn_X_r, trn_y_r, itrstps)
+	avg = sum(train_y)/rows
 	#print "\t>>> Making Predictions.."
 	for i in range(12):
 		datum = 0
 		bit = 2
 		if rand.uniform(0,1) < posprob:
 			bit = 1
-		datum = np.array([ [ i%12+1, bit, r_lrnr.predict( np.array([ [bit, i%12+1] ]) ) ] ])
-		print int( lrnr.predict( datum ) )
+		# datum = np.array([ [ i%12+1, bit, r_lrnr.predict( np.array([ [i%12+1, bit] ]) ) ] ])
+		datum = np.array([ [ i%12+1, bit ] ])
+		print int( lrnr.predict( datum )+avg )
 
 if __name__ == '__main__':
 	main()
