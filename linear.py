@@ -3,23 +3,26 @@
 import numpy as np
 import random as rand
 
-class LinearRegress(object):
+class Regression(object):
 	def __init__(self):
 		self.theta = 0 #weights factor
 
-	def train(self, train_dat, steps):
-		self.Y = train_dat[:, -1:] #last column is treated as output set
-		self.X = np.ones( train_dat.shape ) #include bias
-		self.theta = np.random.rand( train_dat.shape[1], 1 ) #predictors
-		self.X[:, :-1] = train_dat[:, :-1] #save training
-		self.gradientDescent(steps) #start descent
+	def fit(self, X_train, y_train, steps, norm=None):
+		self.Y = y_train
+		if not (norm == None): #normalize training features with given normalization function
+			X_train, self.meus, self.stds = norm(X_train)
+		self.X = np.ones( (X_train.shape[0], X_train.shape[1]+1) )
+		self.X[:, :-1] = X_train
+		#create predictor coefficients
+		self.theta = np.random.rand( self.X.shape[1], 1 )
+		self.gradientDescent( steps )
+
 
 	def gradientDescent(self, steps):
 		'minimize error predictors and expected values; descent uses adaptive alpha'
-		prev_err = 1 + max(self.Y) #set expected erros some large value
-		cost_hst = []
+		prev_err = 1 + max(self.Y)[0] #set expected erros some large value
+		cost_hst = [prev_err]
 		alpha = 0.01 #changes as
-		#descent constants
 		rho = 1.1 #how much to increase learning rate
 		sig = 0.5 #how much to backstep learning rate
 		#don't update original theta incase a backstep is required during descent
@@ -30,13 +33,13 @@ class LinearRegress(object):
 			err = self.X.dot(t_theta)-self.Y #create hypothesis and compute error
 			t_theta -= alpha * (1.0 / m) * self.X.T.dot(err)
 			#alpha is increased while errors are minimized, otherwise backstep and continue
-			cost_hst.append( self.computeCost(m, err) )
-			#print error, '|', prev_err;			
-			if cost_hst[-1:] < prev_err:
-				print ">>>updating"
-				prev_err = cost_hst[-1:]
+			cost_hst.append( self.computeCost(m, err)[0] )
+			if cost_hst[-1:][0] < prev_err:
+				prev_err = cost_hst[-1:][0]
 				alpha = alpha * rho
 				self.theta = t_theta #save optimized thetas
+			elif cost_hst[-1:][0] >= prev_err*1.3:
+				break
 			else:
 				alpha = alpha * sig #use curing sigma to fix learning rate
 				t_theta = self.theta
@@ -44,16 +47,19 @@ class LinearRegress(object):
 
 	def computeCost(self, m, err):
 		'compute least square error between expected and predicted value'
-		return (1.0 /(2 * m)) / sum( pow( err, 2) )
+		sqerr = pow( err, 2)
+		#print sqerr[:]
+		sqerrsm = sum( sqerr )
+		return (1.0 /(2 * m)) / sqerrsm
 
 	def predict(self, dat):
 		'predict outcome for a given datum'
 		if type(self.theta) == int:
-			print '\n Please train predictor first!'
+			#print '\n Please train predictor first!'
 			return None
 		else:
 			datum = np.ones( (1, self.theta.shape[0]) )
-			datum[:, 1:] = dat
+			datum[:,:-1] = dat
 			return datum.dot( self.theta)[0][0] #return prediction
 
 def readData(rows):
@@ -80,55 +86,51 @@ def getRises(dat):
 	return ris
 
 def normalize(dat):
+	meus, stds = [], []
 	#compute each column's mean and standard derivation
 	for i in range( dat.shape[1] ):
-		dat[:, i] -= np.mean( dat[:, i] )
-		dat[:, i] /= np.std( dat[:, i] )
-	return dat
+		meus.append( np.mean( dat[:, i] ) )
+		stds.append( np.std( dat[:, i] ) )
+	return ( dat - [meus] ) / [stds] + 3, meus, stds
 
 ################# SPECIFIC FOR PROBLEM CHALLENGE
 
 def main():
-	print "\t>>> reading rows.."
 	rows = int( raw_input() )
-	print "\t>>> reading DATA.."
+	#print "\t>>> reading DATA.."
 	data = readData(rows)
-	#try to increase feature space by identifying high travel months
-	print "\t>>> expanding feature space.."
-	dicrises = getRises(data)
-
-	#generate learner's training data as numpy data structure
-	print "\t>>> Prepping training data.."
+	#print "\t>>> expanding feature space.."
+	dicrises = getRises(data) #increase feature space by identifying increases of travellers
+	
+	#print "\t>>> Prepping training data.."
 	tmpris, posprob = [], 0.0
 	for i in range(rows):
-		if dicrises[ data[i][0] ][:-1][0] == 2:
+		if dicrises[ data[i][0] ][:-1][0] == 2: #keep track of possitive bits to compute probability
 			posprob += 1
-		tmpris.append(
-		 	[i%12+1] #month
-		 	+ dicrises[data[i][0]] #increasing/decreasing bit and value
-		 	+ [data[i][1]] #number of passangers
-		 )
+		#mnth, neg/pos bit, bit pair val, num of pass
+		tmpris.append( [i%12+1] + dicrises[data[i][0]] + [data[i][1]] )
 	posprob /= rows #probability that there is a possitive increase in flights
 	training_data = np.array(tmpris)
-	print "\t>>> Creating learners.."
-	predictor = LinearRegress()
-	#train
+	train_y = training_data[:, -1:]
+	train_X = training_data[:, :-1]
+	trn_y_r = training_data[:, -2:-1]
+	trn_X_r = training_data[:, :-2]
+
+	#print "\t>>> Creating learners"
 	itrstps = 400
-	print "\t>>> Training learners.."
-	predictor.train(training_data, itrstps)
-	print "\t>>> Making Predictions.."
+	r_lrnr, lrnr = Regression(), Regression()
+	#print "\t>>> Training learners.."
+	r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize )
+	lrnr.fit( train_X, train_y, itrstps, normalize )
 
-	# for i in range(12):
-	# 	datum = []
-	# 	if rand.uniform(0,1) < posprob:
-	# 		datum = [ risesregre.predict( [i%12, 1] ), peeksregre.predict(i%12) ]
-	# 	else:
-	# 		datum = [ risesregre.predict( [i%12, 2] ), peeksregre.predict(i%12) ]
-	# 	# print predictor.predict( datum )
-	# 	print datum
-	return predictor, posprob
+	#print "\t>>> Making Predictions.."
+	for i in range(12):
+		datum = []
+		bit = 2
+		if rand.uniform(0,1) < posprob:
+			bit = 1
+		datum = [ i%12+1, bit, r_lrnr.predict( [bit, i%12+1] ) ]
+		print int( lrnr.predict( datum ) )
 
-
-
-# if __name__ == '__main__':
-# 	main()
+if __name__ == '__main__':
+	main()

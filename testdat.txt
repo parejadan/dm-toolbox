@@ -1,4 +1,3 @@
-60
 MonthNum_1  1226800
 MonthNum_2  926891
 MonthNum_3  782725
