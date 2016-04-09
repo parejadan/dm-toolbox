@@ -77,13 +77,15 @@ def getRises(dat):
 	ris = dict()
 	i = 0
 	mxsz = len(dat)-1
+	negcnt = 0.0
 	while i < mxsz:
 		#descretize negative values with sigmoid so regression model can predict
 		val = dat[i][1] - dat[i+1][1]
 		if val < 0:
-			ris[ dat[i][0] ] = [1, abs(val) ]
+			negcnt += 1
+			ris[ dat[i][0] ] = [ ( negcnt/ (mxsz+1) ), abs(val) ]
 		else:
-			ris[ dat[i][0] ] = [2, abs(val) ]
+			ris[ dat[i][0] ] = [ 1-( negcnt/ (mxsz+1) ), abs(val) ]
 		i += 1
 	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
