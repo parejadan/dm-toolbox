@@ -83,9 +83,9 @@ def getRises(dat):
 		val = dat[i][1] - dat[i+1][1]
 		if val < 0:
 			negcnt += 1
-			ris[ dat[i][0] ] = [ ( negcnt/ (i+1) ), abs(val) ]
+			ris[ dat[i][0] ] = [ ( negcnt/ (mxsz+1) ), abs(val) ]
 		else:
-			ris[ dat[i][0] ] = [ 1-( negcnt/ (i+1) ), abs(val) ]
+			ris[ dat[i][0] ] = [ 1-( negcnt/ (mxsz+1) ), abs(val) ]
 		i += 1
 	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
@@ -136,11 +136,11 @@ def main():
 	#print "\t>>> Making Predictions.."
 	for i in range(12):
 		datum = 0
-		bit = 2
-		if rand.uniform(0,1) < posprob:
-			bit = 1
+		# bit = 2
+		# if rand.uniform(0,1) < posprob:
+		# 	bit = 1
 		# datum = np.array([ [ i%12+1, bit, r_lrnr.predict( np.array([ [i%12+1, bit] ]) ) ] ])
-		datum = np.array([ [ i%12+1, bit ] ])
+		datum = np.array([ [ i%12+1, rand.uniform(0,1) ] ])
 		print int( lrnr.predict( datum )+avg )
 
 if __name__ == '__main__':
