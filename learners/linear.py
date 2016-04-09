@@ -106,17 +106,13 @@ def normalize(dat, meus=None, stds=None):
 
 def main():
 	rows = int( raw_input() )
-	#print "\t>>> reading DATA.."
 	data = readData(rows)
-	#print "\t>>> expanding feature space.."
 	dicrises = getRises(data) #increase feature space by identifying increases of travellers
 	
-	#print "\t>>> Prepping training data.."
 	tmpris, posprob = [], 0.0
 	for i in range(rows):
 		if dicrises[ data[i][0] ][:-1][0] == 2: #keep track of possitive bits to compute probability
 			posprob += 1
-		#mnth, neg/pos bit, bit pair val, num of pass
 		tmpris.append( [i%12+1] + dicrises[data[i][0]] + [data[i][1]] )
 	posprob /= rows #probability that there is a possitive increase in flights
 	training_data = np.array(tmpris)
@@ -125,21 +121,12 @@ def main():
 	trn_y_r = training_data[:, -2:-1]
 	trn_X_r = training_data[:, :-2]
 
-	#print "\t>>> Creating learners"
 	itrstps = 400
 	r_lrnr, lrnr = Regression(), Regression()
-	#print "\t>>> Training learners.."
-	# r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize)
-	# lrnr.fit( train_X, train_y, itrstps, normalize)
 	lrnr.fit( trn_X_r, trn_y_r, itrstps)
 	avg = sum(train_y)/rows
-	#print "\t>>> Making Predictions.."
 	for i in range(12):
 		datum = 0
-		# bit = 2
-		# if rand.uniform(0,1) < posprob:
-		# 	bit = 1
-		# datum = np.array([ [ i%12+1, bit, r_lrnr.predict( np.array([ [i%12+1, bit] ]) ) ] ])
 		datum = np.array([ [ i%12+1, rand.uniform(0,1) ] ])
 		print int( lrnr.predict( datum )+avg )
 
