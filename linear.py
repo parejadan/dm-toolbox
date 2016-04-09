@@ -83,9 +83,9 @@ def getRises(dat):
 		val = dat[i][1] - dat[i+1][1]
 		if val < 0:
 			negcnt += 1
-			ris[ dat[i][0] ] = [ ( negcnt/ (mxsz+1) ), abs(val) ]
+			ris[ dat[i][0] ] = [ ( negcnt/ (i+1) ), abs(val) ]
 		else:
-			ris[ dat[i][0] ] = [ 1-( negcnt/ (mxsz+1) ), abs(val) ]
+			ris[ dat[i][0] ] = [ 1-( negcnt/ (i+1) ), abs(val) ]
 		i += 1
 	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
