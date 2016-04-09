@@ -105,30 +105,27 @@ def normalize(dat, meus=None, stds=None):
 ################# SPECIFIC FOR PROBLEM CHALLENGE
 
 def main():
-	rows = int( raw_input() )
+	rows, i = int( raw_input() ), 0
 	data = readData(rows)
 	dicrises = getRises(data) #increase feature space by identifying increases of travellers
-	
-	tmpris, posprob = [], 0.0
-	for i in range(rows):
-		if dicrises[ data[i][0] ][:-1][0] == 2: #keep track of possitive bits to compute probability
-			posprob += 1
+	tmpris = [] #temporary array for prepping training data
+	while i < rows:
 		tmpris.append( [i%12+1] + dicrises[data[i][0]] + [data[i][1]] )
-	posprob /= rows #probability that there is a possitive increase in flights
-	training_data = np.array(tmpris)
-	train_y = training_data[:, -1:]
-	train_X = training_data[:, :-1]
-	trn_y_r = training_data[:, -2:-1]
-	trn_X_r = training_data[:, :-2]
+		i += 1
+	trn_data = np.array(tmpris) #create one entire numpy dataset for easy manipulation
+	train_y = trn_data[:, -1:]
+	trn_y_r = trn_data[:, -2:-1]
+	trn_X_r = trn_data[:, :-2]
 
 	itrstps = 400
-	r_lrnr, lrnr = Regression(), Regression()
+	lrnr = Regression()
 	lrnr.fit( trn_X_r, trn_y_r, itrstps)
-	avg = sum(train_y)/rows
-	for i in range(12):
+	avgs = sum(train_y)/rows
+	while i < rows+12:
 		datum = 0
 		datum = np.array([ [ i%12+1, rand.uniform(0,1) ] ])
-		print int( lrnr.predict( datum )+avg )
+		print int( lrnr.predict( datum )+ avgs )
+		i += 1
 
 if __name__ == '__main__':
 	main()
