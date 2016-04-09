@@ -9,8 +9,9 @@ class Regression(object):
 
 	def fit(self, X_train, y_train, steps, norm=None):
 		self.Y = y_train
-		if not (norm == None): #normalize training features with given normalization function
-			X_train, self.meus, self.stds = norm(X_train)
+		self.norm = norm
+		if not (self.norm == None): #normalize training features with given normalization function
+			X_train, self.meus, self.stds = self.norm(X_train)
 		self.X = np.ones( (X_train.shape[0], X_train.shape[1]+1) )
 		self.X[:, :-1] = X_train
 		#create predictor coefficients
@@ -57,10 +58,12 @@ class Regression(object):
 		if type(self.theta) == int:
 			#print '\n Please train predictor first!'
 			return None
-		else:
-			datum = np.ones( (1, self.theta.shape[0]) )
-			datum[:,:-1] = dat
-			return datum.dot( self.theta)[0][0] #return prediction
+		elif not (self.norm == None): #if data was normalized
+			dat = self.norm(dat, self.meus, self.stds)
+		
+		datum = np.ones( (1, self.theta.shape[0]) )
+		datum[:,:-1] = dat
+		return datum.dot( self.theta)[0][0] #return prediction
 
 def readData(rows):
 	dat = []
@@ -85,13 +88,17 @@ def getRises(dat):
 	ris[ dat[mxsz][0] ] = [2, 1]
 	return ris
 
-def normalize(dat):
+def normalize(dat, meus=None, stds=None):
+	if not (meus == None):
+		return (dat - [meus] ) / [stds] + 3
+
 	meus, stds = [], []
 	#compute each column's mean and standard derivation
 	for i in range( dat.shape[1] ):
 		meus.append( np.mean( dat[:, i] ) )
 		stds.append( np.std( dat[:, i] ) )
-	return ( dat - [meus] ) / [stds] + 3, meus, stds
+	return ( dat - [meus] ) / [stds], meus, stds
+
 
 ################# SPECIFIC FOR PROBLEM CHALLENGE
 
@@ -120,16 +127,16 @@ def main():
 	itrstps = 400
 	r_lrnr, lrnr = Regression(), Regression()
 	#print "\t>>> Training learners.."
-	r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize )
-	lrnr.fit( train_X, train_y, itrstps, normalize )
+	r_lrnr.fit( trn_X_r, trn_y_r, itrstps, normalize)
+	lrnr.fit( train_X, train_y, itrstps, normalize)
 
 	#print "\t>>> Making Predictions.."
 	for i in range(12):
-		datum = []
+		datum = 0
 		bit = 2
 		if rand.uniform(0,1) < posprob:
 			bit = 1
-		datum = [ i%12+1, bit, r_lrnr.predict( [bit, i%12+1] ) ]
+		datum = np.array([ [ i%12+1, bit, r_lrnr.predict( np.array([ [bit, i%12+1] ]) ) ] ])
 		print int( lrnr.predict( datum ) )
 
 if __name__ == '__main__':
